@@ -123,7 +123,7 @@
   .chip.ok{background:var(--ok-bg);border-color:var(--ok-line);color:#0c6e49} .chip.ok b{color:#0c6e49}
   .chip.warn{background:var(--warn-bg);border-color:var(--warn-line);color:#8f4708} .chip.warn b{color:#8f4708}
   .chip.mut b{color:var(--ink)}
-  .resact{display:flex;align-items:center;gap:10px;margin-left:auto}
+  .resact{display:flex;align-items:flex-end;gap:10px;margin-left:auto}
   .crsin{font:inherit;font-size:13px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;min-width:200px}
   .btn{font:inherit;font-size:13px;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--accent-ink);cursor:pointer;transition:filter .12s,transform .02s,background .12s,border-color .12s}
   .btn:hover{border-color:var(--accent);background:var(--accent-soft)}
@@ -158,8 +158,24 @@
   .ftag.d{color:var(--warn);background:var(--warn-bg)}
   .ftag.f{color:var(--accent-ink);background:var(--accent-soft)}
   .ftag.t{color:#6b3fa0;background:#f1eafc}
+  .ftag.n{color:#0c6e49;background:var(--ok-bg)}
   .legend{display:flex;flex-wrap:wrap;gap:7px 16px;margin:11px 2px 0;font-size:11px;color:var(--ink-soft);align-items:center}
   .legend .ftag{cursor:default}
+
+  /* per-row title-part controls */
+  th.mkcol{text-align:center}
+  td.mkcell{text-align:center;vertical-align:middle;padding:6px 4px}
+  .mkbox{width:15px;height:15px;cursor:pointer;accent-color:var(--accent);margin:0;vertical-align:middle}
+  td.typecell{padding:5px 6px;vertical-align:middle}
+  .typesel{font:inherit;font-size:11.5px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer;max-width:140px}
+  .typesel:focus{outline:2px solid #c2d0ff;outline-offset:1px;border-color:var(--accent)}
+  .titleprev{font-family:var(--mono);font-size:10.5px;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:3px 7px;margin:5px 11px 7px;display:inline-block;line-height:1.35;word-break:break-word;white-space:normal}
+
+  /* bulk apply bar */
+  .bulkbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:14px;padding:10px 12px;background:#fbfcfe;border:1px solid var(--line-soft);border-radius:9px}
+  .bulkbar .bulklabel{font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:var(--ink-faint)}
+  .bulkbar label{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
+  .bulkbar select{width:auto;min-width:120px}
 
   /* review */
   .reviewcard{border-color:var(--warn-line);background:#fffdf9}
@@ -176,6 +192,34 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.err{background:var(--bad)}
   .toast.ok{background:#0f7a4f}
+
+  /* ---------- drag overlay (shows in any state) ---------- */
+  .dragveil{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(20,26,40,.42);padding:24px;pointer-events:none}
+  body.dragging .dragveil{display:flex}
+  .dragveil-card{display:flex;flex-direction:column;align-items:center;gap:9px;background:var(--card);border:2px dashed var(--accent);border-radius:16px;padding:32px 44px;box-shadow:var(--shadow);text-align:center}
+  .dragveil-card .ic{width:48px;height:48px;border-radius:13px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)}
+  .dragveil-card .ic svg{width:24px;height:24px}
+  .dragveil-card strong{font-size:16px;font-weight:650;color:var(--ink)}
+  .dragveil-card span{font-size:12.5px;color:var(--ink-soft)}
+
+  /* ---------- course field (labeled) ---------- */
+  .crsfield{display:flex;flex-direction:column;gap:3px}
+  .crslabel{font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--ink-faint)}
+
+  /* clickable summary chip */
+  .chip.clickable{cursor:pointer;transition:filter .12s,border-color .12s}
+  .chip.clickable:hover{filter:brightness(.97);border-color:var(--warn)}
+  .chip.clickable:focus-visible{outline:2px solid #c2d0ff;outline-offset:2px}
+
+  /* ---------- narrow screens ---------- */
+  @media (max-width:640px){
+    .wrap{grid-template-columns:1fr}
+    .rail{border-right:none;border-bottom:1px solid var(--line)}
+    .main{padding:16px}
+    .resbar{align-items:stretch}
+    .resact{margin-left:0;width:100%}
+    .crsfield{flex:1}
+  }
 </style>
 </head>
 <body class="empty">
@@ -213,12 +257,20 @@
             <div class="step"><span class="num">1</span><div><b>Pick a sheet</b><i>It flags which tabs look like a schedule.</i></div></div>
             <div class="step"><span class="num">2</span><div><b>Check the mapping</b><i>Fix any column guess from a dropdown.</i></div></div>
             <div class="step"><span class="num">3</span><div><b>Set the course</b><i>Type the <code>course_short</code> for these rows.</i></div></div>
-            <div class="step"><span class="num">4</span><div><b>Copy &amp; paste</b><i>Drop them at <code>A2</code> in the Schedule tab.</i></div></div>
+            <div class="step"><span class="num">4</span><div><b>Copy &amp; paste</b><i>Drop them at <code>B2</code> in the Schedule tab.</i></div></div>
           </div>
         </div>
       </div>
       <div id="workspace"></div>
     </main>
+  </div>
+
+  <div class="dragveil" id="dragVeil" aria-hidden="true">
+    <div class="dragveil-card">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M12 3v13M7 8l5-5 5 5"/></svg></span>
+      <strong>Drop to add a spreadsheet</strong>
+      <span>.xlsx, .xls, or .csv</span>
+    </div>
   </div>
 
   <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple hidden>
@@ -233,8 +285,40 @@
 const FILES = [];
 let CURRENT = null;
 const SHEETSTATE = {};
-const TARGETS = ["date","start","end","title","room","desc","etype","mand"];
-const SCHED_COLS = ["session_code","course_short","date","start_time","end_time","title","room","description"];
+const TARGETS = ["date","start","end","title","room","desc","etype","mand","dress"];
+const SCHED_COLS = ["course_short","date","start_time","end_time","title","room","description"]; // session_code excluded: the Schedule tool generates it on paste, so the source never has it
+
+/* ICOM Canvas title convention: [Ⓜ️] [🟧] [Mandatory] [SessionType] Subject: Topic (Metadata).
+   Ⓜ️ and [Mandatory] always travel together: A+ Attendance filters on *Mandatory* and does not
+   read emojis, so the word carries the filter while the emoji is the student-facing cue. 🟧 marks
+   a dress code. This is the same order the faculty submission template assembles. */
+const M_EMOJI = "\u24c2\ufe0f";        // Ⓜ️ mandatory visibility cue
+const DRESS_EMOJI = "\ud83d\udfe7";    // 🟧 dress-code cue
+const MANDATORY_TAG = "[Mandatory]";   // aPlus+ filter token
+const RE_M_EMOJI = /\u24c2\ufe0f?/;    // Ⓜ️ with optional emoji variation selector
+const RE_DRESS_EMOJI = /\ud83d(?:\udfe7|\uded1)/; // 🟧 (also matches the retired 🛑 for cleanup)
+// Event Type column value (normalized) -> session-type tag, most specific keys first.
+const TYPE_TAGS = {
+  alternatelearningactivity:"[ALA]", teambasedlearning:"[ALA]", tbl:"[ALA]", ala:"[ALA]",
+  smallgroup:"[Small Group]", independentstudy:"[Independent Study]",
+  simulation:"[SIM]", sim:"[SIM]", workshop:"[Workshop]", review:"[Review]",
+  lecture:"[Lecture]", lab:"[Lab]", quiz:"[Quiz]", exam:"[Exam]"
+};
+// Flag chip labels: chip key -> short text shown in the table and legend.
+const FLAG_LABEL = { c:"C", d:"+50", f:"fill", t:"PM?", n:":00" };
+// Ordered options for the per-row Type dropdown: value is the tag, label is plain.
+const TYPE_OPTIONS = [
+  ["", "(none)"],
+  ["[Lecture]","Lecture"], ["[Lab]","Lab"], ["[ALA]","ALA"], ["[Small Group]","Small Group"],
+  ["[Review]","Review"], ["[Quiz]","Quiz"], ["[Exam]","Exam"], ["[Workshop]","Workshop"],
+  ["[SIM]","SIM"], ["[Independent Study]","Independent Study"]
+];
+// Set of valid session-type tags, so a tag already sitting in a title is recognized.
+const KNOWN_TYPE_TAGS = (function(){ const s={}; for(const k in TYPE_TAGS){ s[TYPE_TAGS[k]]=true; } return s; })();
+// Coordinator-defined event types, added at runtime. The predefined list above
+// is not exhaustive; these fill the gaps. Session-scoped only: a page reload
+// clears them, which is fine since the assembled titles carry the [tag] anyway.
+const CUSTOM_TYPES = [];
 
 /* ============================================================
    HELPERS — text / detection  (verified parsing, unchanged)
@@ -251,6 +335,7 @@ const SYN = {
   inst:  ["instname","instructor","faculty","lecturer","lecturingfaculty","teacher","presenter"],
   etype: ["ilearningtypeid","learningtype","eventtype","sessiontype","type","modality","format"],
   mand:  ["mandatory","mandatoryattendance","required","attendance"],
+  dress: ["dresscode","dress","attire","whitecoat","uniform"],
   desc:  ["tdescription","description","details","comments","notes","note","comment"]
 };
 const enddate = ["enddate","datethrough","closedate"];
@@ -308,6 +393,146 @@ function cleanRoom(s,strip){
 function cleanDesc(s,title){
   let t=String(s==null?"":s).replace(/\s+/g," ").trim();
   return t;
+}
+
+/* ---- ICOM title convention helpers ----
+   The Canvas title is assembled in this fixed order:
+       Ⓜ️  🟧  [Event Type]  core  [Mandatory]
+   Ⓜ️ (front) and [Mandatory] (end) are linked: both appear together or not at
+   all, and [Mandatory] is always last. 🟧 marks a dress code. "core" is the
+   faculty-written Subject: Topic (Metadata). The tool decomposes each source
+   title into core + detected markers, lets the coordinator adjust them per row
+   (or in bulk), then reassembles in the order above. */
+
+// Event Type column value -> session-type tag (e.g. "Lecture" -> "[Lecture]").
+function lookupTypeTag_(etypeRaw){
+  const et=norm(etypeRaw);
+  if(!et) return "";
+  for(const k in TYPE_TAGS){ if(et.indexOf(k)>-1) return TYPE_TAGS[k]; }
+  return "";
+}
+
+// A Mandatory column value that means "yes". Plain negatives and blanks are no.
+function flagMandatory_(raw){
+  const v=norm(raw);
+  if(!v) return false;
+  if(v==="no"||v==="n"||v==="false"||v==="0"||v==="none"||v==="optional") return false;
+  return v==="yes"||v==="y"||v==="true"||v==="1"||v.indexOf("mandatory")>-1||v.indexOf("required")>-1;
+}
+
+// A Dress Code column value that means "there is a dress code". Any non-empty,
+// non-negative value counts (it may name the code itself, e.g. "White Coat").
+function flagDress_(raw){
+  const v=norm(raw);
+  if(!v) return false;
+  if(v==="no"||v==="n"||v==="false"||v==="0"||v==="none"||v==="na") return false;
+  return true;
+}
+
+function isKnownTypeTag_(tag){ return !!KNOWN_TYPE_TAGS[tag] || CUSTOM_TYPES.indexOf(tag)>-1; }
+
+// Plain label from a [tag] (drops the surrounding brackets for display).
+function labelFromTag_(tag){ return String(tag==null?"":tag).replace(/^\[|\]$/g,""); }
+
+// Normalize a typed-in type name: drop surrounding brackets, collapse spaces.
+function cleanTypeName_(raw){
+  return String(raw==null?"":raw).trim().replace(/^\[+|\]+$/g,"").replace(/\s+/g," ").trim();
+}
+
+// Ask for a custom type name. Returns "" on cancel or empty.
+function promptCustomType_(){
+  const raw=window.prompt("Name the event type. It appears as a [tag] at the front of the title.", "");
+  return cleanTypeName_(raw).slice(0,40);
+}
+
+// Add a custom type to the session list (unless it already exists). Returns its [tag].
+function registerCustomType_(name){
+  const tag="["+name+"]";
+  if(!isKnownTypeTag_(tag)) CUSTOM_TYPES.push(tag);
+  return tag;
+}
+
+// Ordered [value,label] pairs for a Type dropdown: built-ins, then custom types,
+// plus `sel` itself if it is somehow not already represented.
+function typePairs_(sel){
+  const pairs=TYPE_OPTIONS.slice();
+  const have={}; pairs.forEach(function(p){ have[p[0]]=true; });
+  CUSTOM_TYPES.forEach(function(tag){ if(!have[tag]){ pairs.push([tag, labelFromTag_(tag)]); have[tag]=true; } });
+  if(sel && !have[sel]){ pairs.push([sel, labelFromTag_(sel)]); have[sel]=true; }
+  return pairs;
+}
+
+// Split a cleaned source title into { core, mandatory, dress, typeTag }. Markers
+// already present (Ⓜ️ / 🟧 / a known [Type] / [Mandatory]) are detected and
+// removed from the core so they can be re-placed canonically and shown as
+// per-row controls. Column values (when those columns exist) seed the same
+// state. A bare word "mandatory" is treated as content, never a marker; a
+// leading bracket that is NOT a known type tag stays in the core.
+function decomposeTitle_(cleanedTitle, etypeRaw, mandRaw, dressRaw){
+  const original=String(cleanedTitle==null?"":cleanedTitle).trim();
+
+  const hadMEmoji=RE_M_EMOJI.test(original);
+  const hadDressEmoji=RE_DRESS_EMOJI.test(original);
+  const hadMandatoryTag=/\[\s*mandatory/i.test(original) || /\(\s*mandatory/i.test(original);
+
+  // Peel leading cue emojis and whitespace so a leading [Type] is reachable.
+  let core=original.replace(/^(?:\u24c2\ufe0f?|\ud83d(?:\udfe7|\uded1)|\s)+/, "");
+
+  // Capture a leading bracket ONLY when it is a known session-type tag.
+  let typeTag="";
+  const lead=core.match(/^\[([^\]]*)\]\s*/);
+  if(lead){
+    const candidate="["+lead[1].trim()+"]";
+    if(isKnownTypeTag_(candidate)){ typeTag=candidate; core=core.slice(lead[0].length); }
+  }
+
+  // Strip Mandatory markers and stray cue emojis from the core.
+  core=core
+    .replace(/\[\s*mandatory[^\]]*\]/ig," ")
+    .replace(/\(\s*mandatory[^)]*\)/ig," ")
+    .replace(/\u24c2\ufe0f?/g," ")
+    .replace(/\ud83d(?:\udfe7|\uded1)/g," ")
+    .replace(/\s{2,}/g," ")
+    .trim();
+
+  const mandatory=flagMandatory_(mandRaw) || hadMEmoji || hadMandatoryTag;
+  const dress=flagDress_(dressRaw) || hadDressEmoji;
+  if(!typeTag) typeTag=lookupTypeTag_(etypeRaw);
+
+  return { core:core, mandatory:mandatory, dress:dress, typeTag:typeTag };
+}
+
+// Reassemble: Ⓜ️  🟧  [Event Type]  core  [Mandatory]. Ⓜ️ and [Mandatory] are
+// linked; [Mandatory] is always the last thing in the title.
+function buildFromParts_(core, typeTag, mandatory, dress){
+  const head=[];
+  if(mandatory) head.push(M_EMOJI);
+  if(dress) head.push(DRESS_EMOJI);
+  if(typeTag) head.push(typeTag);
+  let out=head.join(" ");
+  const c=String(core==null?"":core).trim();
+  if(c) out = out ? (out+" "+c) : c;
+  if(mandatory) out = (out ? out+" " : "") + MANDATORY_TAG;
+  return out.replace(/\s{2,}/g," ").trim();
+}
+
+// The final Canvas title for an (already edit-merged) output row.
+function assembledTitle_(r){
+  return buildFromParts_(r.core, r.typeTag, r.mandatory, r.dress);
+}
+
+// <option> list for the per-row Type dropdown, preselecting `sel`, with a
+// "+ Custom type…" action at the end.
+function typeOptionsHtml_(sel){
+  var h=typePairs_(sel).map(function(o){ return '<option value="'+escapeHtml(o[0])+'"'+(o[0]===sel?' selected':'')+'>'+escapeHtml(o[1])+'</option>'; }).join("");
+  return h+'<option value="__custom">+ Custom type\u2026</option>';
+}
+// <option> list for the bulk Type control: a no-op "keep", a clear, the types,
+// then a "+ Custom type…" action.
+function bulkTypeOptionsHtml_(){
+  var h='<option value="__keep" selected>— keep —</option><option value="">Clear type</option>';
+  typePairs_("").forEach(function(o){ if(o[0]==="") return; h+='<option value="'+escapeHtml(o[0])+'">'+escapeHtml(o[1])+'</option>'; });
+  return h+'<option value="__custom">+ Custom type\u2026</option>';
 }
 
 /* workbook reading — formatted .w strings (tz-safe) */
@@ -418,6 +643,8 @@ function detectColumns(grid,headerRow){
   if(etCands.length) map.etype=pick(etCands[0]);
   let mandCands=headerMatch(stats,SYN.mand).filter(c=>!used.has(c)&&c!==instCol);
   if(mandCands.length) map.mand=pick(mandCands[0]);
+  let dressCands=headerMatch(stats,SYN.dress).filter(c=>!used.has(c)&&c!==instCol&&c!==map.mand);
+  if(dressCands.length) map.dress=pick(dressCands[0]);
 
   let descCands=headerMatch(stats,SYN.desc).filter(c=>!used.has(c)&&c!==instCol);
   let descCol=null;
@@ -471,22 +698,16 @@ function extract(grid, headerRow, map, opts){
     const ep=parseTime(endRaw);
     let start = sp? sp.start : null;
     let end   = ep? ep.start : null;
-    let endDerived=false, assumedTime=false;
+    let endDerived=false, assumedTime=false, endRounded=false;
     if(!end && sp && sp.range) end=sp.end;
     if(start && !end && opts.deriveEnd){ end=addMin(start,50); endDerived=true; }
     if(sp && sp.start && sp.start.assumed) assumedTime=true;
+    // Round a :50 end up to the top of the next hour (a 50-min session reads as a
+    // full hour on the calendar). Applies to parsed, range, and derived ends.
+    if(opts.roundEnd && end && end.m===50){ end={h:(end.h+1)%24,m:0}; endRounded=true; }
 
-    let title=cleanTitle(get(row,map.title));
-    if(opts.buildTitle && title){
-      const et=norm(get(row,map.etype));
-      const tagMap={lecture:"[Lecture]",alternatelearningactivity:"[ALA]",ala:"[ALA]",teambasedlearning:"[ALA]",tbl:"[ALA]",lab:"[Lab]",quiz:"[Quiz]",exam:"[Exam]",review:"[Review]",independentstudy:"[Independent Study]"};
-      let tag=""; for(const k in tagMap){ if(et.includes(k)){ tag=tagMap[k]; break; } }
-      if(tag && !/^\s*[\[\u24c2]/.test(title)) title=tag+" "+title;
-      const mraw=norm(get(row,map.mand));
-      if((mraw.includes("mandatory")||mraw==="yes"||mraw.includes("required")) && !/mandatory/i.test(title)){
-        title=title+" [Mandatory]";
-      }
-    }
+    const rawTitle=cleanTitle(get(row,map.title));
+    const dec=decomposeTitle_(rawTitle, get(row,map.etype), get(row,map.mand), get(row,map.dress));
 
     const room=cleanRoom(get(row,map.room), opts.stripRoom);
     const flags=[];
@@ -497,7 +718,7 @@ function extract(grid, headerRow, map, opts){
       if(startRaw.trim() && !parseTime(startRaw)) reasons.push("unreadable time: "+startRaw.slice(0,28));
       else reasons.push("no start time");
     }
-    if(!title) reasons.push("no title");
+    if(!rawTitle) reasons.push("no title");
     if(d && d2 && (d2.y!==d.y||d2.mo!==d.mo||d2.d!==d.d)){
       reasons.push(`multi-day (${fmtDate(d)} \u2192 ${fmtDate(d2)})`);
     }
@@ -505,7 +726,7 @@ function extract(grid, headerRow, map, opts){
     if(reasons.length===1 && reasons[0]==="no title") reasons[0]="empty slot";
 
     if(reasons.length){
-      review.push({reason:reasons.join("; "), date:fmtDate(d), time:[startRaw,endRaw].filter(Boolean).join("\u2013"), title:title||get(row,map.title)||"(blank)", room});
+      review.push({reason:reasons.join("; "), date:fmtDate(d), time:[startRaw,endRaw].filter(Boolean).join("\u2013"), title:rawTitle||get(row,map.title)||"(blank)", room});
       continue;
     }
 
@@ -514,13 +735,15 @@ function extract(grid, headerRow, map, opts){
     if(conflict) flags.push({k:"c",t:"conflict"});
     if(d===lastDate && parseDate(dateRaw)===null) flags.push({k:"f",t:"date filled"});
     if(endDerived) flags.push({k:"d",t:"end +50"});
+    if(endRounded) flags.push({k:"n",t:"rounded :50 to :00"});
     if(assumedTime) flags.push({k:"t",t:"PM assumed"});
 
     out.push({
       flags, code:"", course:"",
       date:fmtDate(d), start:fmtTime(start), end:end?fmtTime(end):"",
-      title, room,
-      desc: opts.keepDesc? cleanDesc(get(row,map.desc),title) : "",
+      core: dec.core, mandatory: dec.mandatory, dress: dec.dress, typeTag: dec.typeTag,
+      room,
+      desc: opts.keepDesc? cleanDesc(get(row,map.desc),dec.core) : "",
       _sortk: d.y*1e8 + d.mo*1e6 + d.d*1e4 + (start?start.h*100+start.m:0)
     });
   }
@@ -533,7 +756,7 @@ function likely(grid){
   const hr=detectHeaderRow(grid);
   const map=detectColumns(grid,hr);
   if(map.date==null||map.start==null||map.title==null) return false;
-  const {out}=extract(grid,hr,map,{deriveEnd:true,stripRoom:true,keepDesc:false,buildTitle:false});
+  const {out}=extract(grid,hr,map,{deriveEnd:true,roundEnd:true,stripRoom:true,keepDesc:false});
   return out.length>=3;
 }
 
@@ -569,7 +792,7 @@ function getState(grid){
   if(!SHEETSTATE[k]){
     const hr=detectHeaderRow(grid);
     const map=detectColumns(grid,hr);
-    SHEETSTATE[k]={ headerRow:hr, map:pruneMap(map), opts:{deriveEnd:true,stripRoom:true,keepDesc:false,buildTitle:false}, course:"", edits:{} };
+    SHEETSTATE[k]={ headerRow:hr, map:pruneMap(map), opts:{deriveEnd:true,roundEnd:true,stripRoom:true,keepDesc:false}, course:"", edits:{} };
   }
   return SHEETSTATE[k];
 }
@@ -596,7 +819,7 @@ function renderWorkspace(){
   const fields=[
     ["date","Date",true],["start","Start time",true],["title","Title",true],
     ["end","End time",false],["room","Room / location",false],["desc","Description source",false],
-    ["etype","Event type (optional)",false],["mand","Mandatory flag (optional)",false]
+    ["etype","Event type (optional)",false],["mand","Mandatory flag (optional)",false],["dress","Dress code flag (optional)",false]
   ];
   let mapFields="";
   for(const [key,label,req] of fields){
@@ -612,9 +835,9 @@ function renderWorkspace(){
         <label class="ctl"><span>Header row</span><input class="numin" id="hrIn" type="number" min="1" value="${st.headerRow+1}"></label>
         <div class="switches">
           <label class="sw"><input type="checkbox" id="tgEnd" ${st.opts.deriveEnd?"checked":""}><span class="track"></span>Fill missing end times (+50 min)</label>
+          <label class="sw"><input type="checkbox" id="tgRound" ${st.opts.roundEnd?"checked":""}><span class="track"></span>Round :50 end times up to the hour</label>
           <label class="sw"><input type="checkbox" id="tgRoom" ${st.opts.stripRoom?"checked":""}><span class="track"></span>Strip Hybrid / Panopto from room</label>
           <label class="sw"><input type="checkbox" id="tgDesc" ${st.opts.keepDesc?"checked":""}><span class="track"></span>Include descriptions</label>
-          <label class="sw"><input type="checkbox" id="tgTitle" ${st.opts.buildTitle?"checked":""}><span class="track"></span>Build [Type] / [Mandatory] into title</label>
         </div>
       </div>
       <div class="mapgrid">${mapFields}</div>
@@ -627,9 +850,9 @@ function renderWorkspace(){
   });
   $("hrIn").onchange=e=>{ st.headerRow=Math.max(0,(+e.target.value||1)-1); SHEETSTATE[stateKey()].map=pruneMap(detectColumns(grid,st.headerRow)); st.edits={}; renderWorkspace(); };
   $("tgEnd").onchange=e=>{st.opts.deriveEnd=e.target.checked; renderResult();};
+  $("tgRound").onchange=e=>{st.opts.roundEnd=e.target.checked; renderResult();};
   $("tgRoom").onchange=e=>{st.opts.stripRoom=e.target.checked; renderResult();};
   $("tgDesc").onchange=e=>{st.opts.keepDesc=e.target.checked; renderResult();};
-  $("tgTitle").onchange=e=>{st.opts.buildTitle=e.target.checked; renderResult();};
 
   renderResult();
 }
@@ -649,11 +872,14 @@ function renderResult(){
     <div class="resbar">
       <div class="chips">
         <span class="chip ok"><b>${out.length}</b> ready</span>
-        <span class="chip ${realRev.length?"warn":"mut"}"><b>${realRev.length}</b> need review</span>
+        <span class="chip ${realRev.length?"warn clickable":"mut"}"${realRev.length?' id="reviewChip" role="button" tabindex="0" title="Jump to the review list"':''}><b>${realRev.length}</b> need review</span>
         ${empties.length?`<span class="chip mut"><b>${empties.length}</b> empty slots</span>`:""}
       </div>
       <div class="resact">
-        <input class="crsin" id="crsIn" placeholder="course_short, e.g. CARD-2029" value="${escapeHtml(st.course)}">
+        <label class="crsfield">
+          <span class="crslabel">Course for these rows</span>
+          <input class="crsin" id="crsIn" placeholder="e.g. CARD-2029" value="${escapeHtml(st.course)}">
+        </label>
         <button class="btn primary" id="copyBtn" ${out.length?"":"disabled"}>Copy ${out.length} rows</button>
       </div>
     </div>`;
@@ -663,15 +889,22 @@ function renderResult(){
   } else if(!out.length){
     html+=`<div class="note">No schedulable rows came out of this sheet. If it really is a schedule, check the column mapping above. Otherwise this tab probably isn't a schedule.</div>`;
   } else {
-    html+=`<div class="tablewrap"><table><thead><tr>
-      <th></th><th>session_code</th><th>course_short</th><th>date</th><th>start_time</th><th>end_time</th><th>title</th><th>room</th><th>description</th>
+    html+=`<div class="bulkbar">
+      <span class="bulklabel">Apply to all rows</span>
+      <label>Type <select id="bulkType">${bulkTypeOptionsHtml_()}</select></label>
+      <label>Mandatory <select id="bulkMand"><option value="__keep" selected>— keep —</option><option value="yes">Yes (Ⓜ️)</option><option value="no">No</option></select></label>
+      <label>Dress code <select id="bulkDress"><option value="__keep" selected>— keep —</option><option value="yes">Yes (🟧)</option><option value="no">No</option></select></label>
+    </div>
+    <div class="tablewrap"><table><thead><tr>
+      <th scope="col" aria-label="flags"></th><th scope="col">course_short</th><th scope="col">date</th><th scope="col">start_time</th><th scope="col">end_time</th><th scope="col" class="mkcol" title="Mandatory: adds Ⓜ️ and [Mandatory]">Ⓜ️</th><th scope="col" class="mkcol" title="Dress code: adds 🟧">🟧</th><th scope="col">type</th><th scope="col">title</th><th scope="col">room</th><th scope="col">description</th>
     </tr></thead><tbody id="tbody"></tbody></table></div>
     <div class="legend">
       <span><span class="ftag c">C</span> source conflict</span>
       <span><span class="ftag d">+50</span> end time inferred</span>
+      <span><span class="ftag n">:00</span> end rounded to the hour</span>
       <span><span class="ftag f">fill</span> date carried down</span>
       <span><span class="ftag t">PM?</span> AM/PM assumed</span>
-      <span style="color:var(--ink-faint)">Cells are editable. session_code stays blank for the script to fill.</span>
+      <span style="color:var(--ink-faint)">Set Ⓜ️ / 🟧 / type per row or in bulk. The blue line under a title is exactly what Canvas gets. Paste at B2; session_code (column A) fills itself.</span>
     </div>`;
   }
   html+=`</section>`;
@@ -696,35 +929,93 @@ function renderResult(){
     const tb=$("tbody");
     out.forEach((r,i)=>{
       const tr=document.createElement("tr");
-      const fl=r.flags.map(f=>`<span class="ftag ${f.k}" title="${f.t}">${f.k==="d"?"+50":f.k==="f"?"fill":f.k==="t"?"PM?":"C"}</span>`).join("");
+      const fl=r.flags.map(f=>`<span class="ftag ${f.k}" title="${escapeHtml(f.t)}">${FLAG_LABEL[f.k]||f.k}</span>`).join("");
+      const prevLine=(r.mandatory||r.dress||r.typeTag)?`<div class="titleprev" data-prev="1">${escapeHtml(assembledTitle_(r))}</div>`:``;
       tr.innerHTML=`
         <td class="flagcell">${fl}</td>
-        <td class="code"><div class="cell">&nbsp;</div></td>
         <td class="mono"><div class="cell" data-f="course">${escapeHtml(r.course)}</div></td>
         <td class="mono"><div class="cell" contenteditable data-f="date">${escapeHtml(r.date)}</div></td>
         <td class="mono"><div class="cell" contenteditable data-f="start">${escapeHtml(r.start)}</div></td>
         <td class="mono"><div class="cell" contenteditable data-f="end">${escapeHtml(r.end)}</div></td>
-        <td class="col-title"><div class="cell" contenteditable data-f="title">${escapeHtml(r.title)}</div></td>
+        <td class="mkcell"><input type="checkbox" class="mkbox" data-mk="mandatory" ${r.mandatory?"checked":""} aria-label="Mandatory"></td>
+        <td class="mkcell"><input type="checkbox" class="mkbox" data-mk="dress" ${r.dress?"checked":""} aria-label="Dress code"></td>
+        <td class="typecell"><select class="typesel" aria-label="Event type">${typeOptionsHtml_(r.typeTag||"")}</select></td>
+        <td class="col-title"><div class="cell" contenteditable data-f="core">${escapeHtml(r.core)}</div>${prevLine}</td>
         <td><div class="cell" contenteditable data-f="room">${escapeHtml(r.room)}</div></td>
         <td class="col-desc"><div class="cell" contenteditable data-f="desc">${escapeHtml(r.desc)}</div></td>`;
       tr.querySelectorAll('.cell[contenteditable]').forEach(cell=>{
-        cell.addEventListener('input',()=>{ if(!st.edits[i])st.edits[i]={}; st.edits[i][cell.dataset.f]=cell.textContent; });
+        cell.addEventListener('input',()=>{
+          if(!st.edits[i])st.edits[i]={};
+          st.edits[i][cell.dataset.f]=cell.textContent;
+          if(cell.dataset.f==='core'){
+            const prev=tr.querySelector('[data-prev]');
+            if(prev){ prev.textContent=assembledTitle_(Object.assign({}, r, st.edits[i])); }
+          }
+        });
+      });
+      tr.querySelectorAll('.mkbox').forEach(box=>{
+        box.addEventListener('change',()=>{ if(!st.edits[i])st.edits[i]={}; st.edits[i][box.dataset.mk]=box.checked; renderResult(); });
+      });
+      const tsel=tr.querySelector('.typesel');
+      if(tsel) tsel.addEventListener('change',()=>{
+        if(tsel.value==='__custom'){
+          const name=promptCustomType_();
+          if(name){ const tag=registerCustomType_(name); if(!st.edits[i])st.edits[i]={}; st.edits[i].typeTag=tag; }
+          renderResult(); // re-render either way; a cancel reverts the dropdown
+          return;
+        }
+        if(!st.edits[i])st.edits[i]={}; st.edits[i].typeTag=tsel.value; renderResult();
       });
       tb.appendChild(tr);
     });
     $("copyBtn").onclick=()=>copyRows(out);
+    // Bulk apply: a selection other than "keep" stamps every row, then re-renders.
+    const applyAll=(field,val)=>{ out.forEach((r,i)=>{ if(!st.edits[i])st.edits[i]={}; st.edits[i][field]=val; }); renderResult(); };
+    const bt=$("bulkType"); if(bt) bt.onchange=()=>{
+      if(bt.value==='__keep') return;
+      if(bt.value==='__custom'){
+        const name=promptCustomType_();
+        if(name){ applyAll('typeTag', registerCustomType_(name)); } else { renderResult(); }
+        return;
+      }
+      applyAll('typeTag', bt.value);
+    };
+    const bm=$("bulkMand"); if(bm) bm.onchange=()=>{ if(bm.value!=="__keep") applyAll('mandatory', bm.value==="yes"); };
+    const bd=$("bulkDress"); if(bd) bd.onchange=()=>{ if(bd.value!=="__keep") applyAll('dress', bd.value==="yes"); };
+    // Spreadsheet-style cell navigation: Enter moves down (Shift+Enter up),
+    // Escape commits and exits, and a stray newline is never inserted.
+    tb.addEventListener('keydown', e=>{
+      const cell=e.target && e.target.closest && e.target.closest('.cell[contenteditable]');
+      if(!cell) return;
+      if(e.key==='Enter'){
+        e.preventDefault();
+        const td=cell.parentElement, tr=td.parentElement;
+        const colIdx=Array.prototype.indexOf.call(tr.children, td);
+        const sib=e.shiftKey ? tr.previousElementSibling : tr.nextElementSibling;
+        const target=sib && sib.children[colIdx] && sib.children[colIdx].querySelector('.cell[contenteditable]');
+        if(target){ target.focus(); placeCaretEnd_(target); } else { cell.blur(); }
+      } else if(e.key==='Escape'){
+        e.preventDefault(); cell.blur();
+      }
+    });
   }
   const crs=$("crsIn");
   if(crs){ crs.oninput=()=>{ st.course=crs.value; document.querySelectorAll('.cell[data-f="course"]').forEach(c=>c.textContent=st.course); }; }
+  const revChip=$("reviewChip");
+  if(revChip){
+    const goReview=()=>{ const rc=area.querySelector('.reviewcard'); if(rc) rc.scrollIntoView({behavior: prefersReduced_()?'auto':'smooth', block:'start'}); };
+    revChip.onclick=goReview;
+    revChip.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goReview(); } };
+  }
 }
 
 function copyRows(rows){
   const st=SHEETSTATE[stateKey()];
   const tsv=rows.map(r=>{
-    const o={session_code:"",course_short:st.course||"",date:r.date,start_time:r.start,end_time:r.end,title:r.title,room:r.room,description:r.desc};
+    const o={course_short:st.course||"",date:r.date,start_time:r.start,end_time:r.end,title:assembledTitle_(r),room:r.room,description:r.desc};
     return SCHED_COLS.map(k=>String(o[k]==null?"":o[k]).replace(/\t/g," ").replace(/\r?\n/g," ")).join("\t");
   }).join("\n");
-  const done=()=>toast(`Copied ${rows.length} rows — paste at A2 in the Schedule tab`,"ok");
+  const done=()=>toast(`Copied ${rows.length} rows — paste at B2 in the Schedule tab (column A, session_code, fills itself)`,"ok");
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(tsv).then(done).catch(()=>fallbackCopy(tsv,done));
   } else fallbackCopy(tsv,done);
@@ -742,6 +1033,7 @@ function handleFiles(fileList){
   const arr=Array.from(fileList);
   let pending=arr.length;
   if(!pending) return;
+  toast('Reading ' + (arr.length>1 ? arr.length+' files' : arr[0].name) + '\u2026');
   arr.forEach(file=>{
     if(!/\.(xlsx|xls|csv)$/i.test(file.name)){ toast("Skipped "+file.name+" — upload the .xlsx, not the PDF","err"); if(--pending===0){ setMode(); renderRail(); autoOpenFirst(); } return; }
     const rd=new FileReader();
@@ -777,6 +1069,12 @@ function clearAll(){
    ============================================================ */
 function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function truncate(s,n){ s=String(s); return s.length>n? s.slice(0,n-1)+"\u2026":s; }
+function prefersReduced_(){ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+function placeCaretEnd_(el){
+  try{ const r=document.createRange(); r.selectNodeContents(el); r.collapse(false);
+    const s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }catch(_){}
+}
 
 const fileInput=$("fileInput");
 fileInput.onchange=()=>{ handleFiles(fileInput.files); fileInput.value=""; };
