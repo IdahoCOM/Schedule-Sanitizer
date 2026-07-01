@@ -113,7 +113,7 @@
   .mapfield label .req{color:var(--bad)}
   .mapfield.required label{color:var(--ink)}
   select{font:inherit;font-size:12.5px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);width:100%;cursor:pointer}
-  select:focus,.numin:focus,.crsin:focus{outline:2px solid #c2d0ff;outline-offset:1px;border-color:var(--accent)}
+  select:focus,.numin:focus{outline:2px solid #c2d0ff;outline-offset:1px;border-color:var(--accent)}
 
   /* result bar */
   .resbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px}
@@ -124,7 +124,6 @@
   .chip.warn{background:var(--warn-bg);border-color:var(--warn-line);color:#8f4708} .chip.warn b{color:#8f4708}
   .chip.mut b{color:var(--ink)}
   .resact{display:flex;align-items:flex-end;gap:10px;margin-left:auto}
-  .crsin{font:inherit;font-size:13px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;min-width:200px}
   .btn{font:inherit;font-size:13px;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--accent-ink);cursor:pointer;transition:filter .12s,transform .02s,background .12s,border-color .12s}
   .btn:hover{border-color:var(--accent);background:var(--accent-soft)}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(52,87,213,.3)}
@@ -159,6 +158,7 @@
   .ftag.f{color:var(--accent-ink);background:var(--accent-soft)}
   .ftag.t{color:#6b3fa0;background:#f1eafc}
   .ftag.n{color:#0c6e49;background:var(--ok-bg)}
+  .ftag.q{color:#0b6a75;background:#e0f2f4}
   .legend{display:flex;flex-wrap:wrap;gap:7px 16px;margin:11px 2px 0;font-size:11px;color:var(--ink-soft);align-items:center}
   .legend .ftag{cursor:default}
 
@@ -202,9 +202,10 @@
   .dragveil-card strong{font-size:16px;font-weight:650;color:var(--ink)}
   .dragveil-card span{font-size:12.5px;color:var(--ink-soft)}
 
-  /* ---------- course field (labeled) ---------- */
-  .crsfield{display:flex;flex-direction:column;gap:3px}
-  .crslabel{font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--ink-faint)}
+  /* room field: text input with datalist suggestions, styled like a cell */
+  input.roomin{font:inherit;font-size:12.5px;width:100%;border:none;background:transparent;padding:7px 11px;color:var(--ink);line-height:1.4;border-radius:0}
+  input.roomin:hover{background:#fafcff}
+  input.roomin:focus{background:#fffceb;box-shadow:inset 0 0 0 2px #ffe08a;outline:none}
 
   /* clickable summary chip */
   .chip.clickable{cursor:pointer;transition:filter .12s,border-color .12s}
@@ -218,7 +219,6 @@
     .main{padding:16px}
     .resbar{align-items:stretch}
     .resact{margin-left:0;width:100%}
-    .crsfield{flex:1}
   }
 </style>
 </head>
@@ -256,8 +256,8 @@
           <div class="steps">
             <div class="step"><span class="num">1</span><div><b>Pick a sheet</b><i>It flags which tabs look like a schedule.</i></div></div>
             <div class="step"><span class="num">2</span><div><b>Check the mapping</b><i>Fix any column guess from a dropdown.</i></div></div>
-            <div class="step"><span class="num">3</span><div><b>Set the course</b><i>Type the <code>course_short</code> for these rows.</i></div></div>
-            <div class="step"><span class="num">4</span><div><b>Copy &amp; paste</b><i>Drop them at <code>B2</code> in the Schedule tab.</i></div></div>
+            <div class="step"><span class="num">3</span><div><b>Set type &amp; markers</b><i>Add event type, Ⓜ️, 🟧 per row or in bulk.</i></div></div>
+            <div class="step"><span class="num">4</span><div><b>Copy &amp; paste</b><i>Drop them at <code>C2</code> in the Schedule tab.</i></div></div>
           </div>
         </div>
       </div>
@@ -286,7 +286,7 @@ const FILES = [];
 let CURRENT = null;
 const SHEETSTATE = {};
 const TARGETS = ["date","start","end","title","room","desc","etype","mand","dress"];
-const SCHED_COLS = ["course_short","date","start_time","end_time","title","room","description"]; // session_code excluded: the Schedule tool generates it on paste, so the source never has it
+const SCHED_COLS = ["date","start_time","end_time","title","room","description"]; // course_short and session_code are handled in the Schedule tab, not here
 
 /* ICOM Canvas title convention: [Ⓜ️] [🟧] [Mandatory] [SessionType] Subject: Topic (Metadata).
    Ⓜ️ and [Mandatory] always travel together: A+ Attendance filters on *Mandatory* and does not
@@ -299,19 +299,28 @@ const RE_M_EMOJI = /\u24c2\ufe0f?/;    // Ⓜ️ with optional emoji variation s
 const RE_DRESS_EMOJI = /\ud83d(?:\udfe7|\uded1)/; // 🟧 (also matches the retired 🛑 for cleanup)
 // Event Type column value (normalized) -> session-type tag, most specific keys first.
 const TYPE_TAGS = {
-  alternatelearningactivity:"[ALA]", teambasedlearning:"[ALA]", tbl:"[ALA]", ala:"[ALA]",
-  smallgroup:"[Small Group]", independentstudy:"[Independent Study]",
-  simulation:"[SIM]", sim:"[SIM]", workshop:"[Workshop]", review:"[Review]",
-  lecture:"[Lecture]", lab:"[Lab]", quiz:"[Quiz]", exam:"[Exam]"
+  alternatelearningactivity:"[ALA]", ala:"[ALA]",
+  practicalexam:"[Practical Exam]",            // before "exam" so it matches first
+  teambasedlearning:"[TBL]", tbl:"[TBL]",
+  independentstudy:"[Independent Study]",
+  assignment:"[Assignment]",
+  lecture:"[Lecture]", lab:"[Lab]", exam:"[Exam]", quiz:"[Quiz]", review:"[Review]"
 };
 // Flag chip labels: chip key -> short text shown in the table and legend.
-const FLAG_LABEL = { c:"C", d:"+50", f:"fill", t:"PM?", n:":00" };
+const FLAG_LABEL = { c:"C", d:"+50", f:"fill", t:"PM?", n:":00", q:"quiz" };
 // Ordered options for the per-row Type dropdown: value is the tag, label is plain.
 const TYPE_OPTIONS = [
   ["", "(none)"],
-  ["[Lecture]","Lecture"], ["[Lab]","Lab"], ["[ALA]","ALA"], ["[Small Group]","Small Group"],
-  ["[Review]","Review"], ["[Quiz]","Quiz"], ["[Exam]","Exam"], ["[Workshop]","Workshop"],
-  ["[SIM]","SIM"], ["[Independent Study]","Independent Study"]
+  ["[ALA]","ALA"], ["[Assignment]","Assignment"], ["[Exam]","Exam"], ["[Lab]","Lab"],
+  ["[Lecture]","Lecture"], ["[Practical Exam]","Practical Exam"], ["[Quiz]","Quiz"], ["[TBL]","TBL"],
+  ["[Independent Study]","Independent Study"], ["[Review]","Review"]
+];
+// Known ICOM rooms, offered as autocomplete suggestions on the room field. Not a
+// closed list: the field is a plain text input, so any value can still be typed.
+const KNOWN_ROOMS = [
+  "Hybrid 150","Lecture Hall 150","Panopto 150","Remote","Virtual","Small Group Study Rooms",
+  "OMM Lab 238","Prebrief 228","Glassroom 202","Room 303","Hybrid 156","Panopto 156",
+  "Lecture Hall 156","OSCE Suite","Boise Urban Garden","SIM Lab","Atrium","Idaho CPR"
 ];
 // Set of valid session-type tags, so a tag already sitting in a title is recognized.
 const KNOWN_TYPE_TAGS = (function(){ const s={}; for(const k in TYPE_TAGS){ s[TYPE_TAGS[k]]=true; } return s; })();
@@ -339,7 +348,6 @@ const SYN = {
   desc:  ["tdescription","description","details","comments","notes","note","comment"]
 };
 const enddate = ["enddate","datethrough","closedate"];
-const MODE_WORDS = new Set(["hybrid","panopto","remote","online","live","inperson","virtual","webex","zoom","recorded"]);
 
 const THIS_YEAR = new Date().getFullYear();
 function plausibleYear(y){ return y >= THIS_YEAR-1 && y <= THIS_YEAR+4; }
@@ -383,12 +391,8 @@ function cleanTitle(s){
   t=t.replace(/\s*(\((?:c|t)\)\s*)+$/i,"").trim();
   return t;
 }
-function cleanRoom(s,strip){
-  let t=String(s==null?"":s).replace(/\s+/g," ").trim();
-  if(!strip) return t;
-  const parts=t.split(" ");
-  if(parts.length>1 && MODE_WORDS.has(norm(parts[0]))) parts.shift();
-  return parts.join(" ").trim();
+function cleanRoom(s){
+  return String(s==null?"":s).replace(/\s+/g," ").trim();
 }
 function cleanDesc(s,title){
   let t=String(s==null?"":s).replace(/\s+/g," ").trim();
@@ -693,23 +697,33 @@ function extract(grid, headerRow, map, opts){
 
     let d2 = map._end2!=null ? parseDate(get(row,map._end2)) : null;
 
-    const startRaw=get(row,map.start), endRaw=get(row,map.end);
-    const sp=parseTime(startRaw);
-    const ep=parseTime(endRaw);
-    let start = sp? sp.start : null;
-    let end   = ep? ep.start : null;
-    let endDerived=false, assumedTime=false, endRounded=false;
-    if(!end && sp && sp.range) end=sp.end;
-    if(start && !end && opts.deriveEnd){ end=addMin(start,50); endDerived=true; }
-    if(sp && sp.start && sp.start.assumed) assumedTime=true;
-    // Round a :50 end up to the top of the next hour (a 50-min session reads as a
-    // full hour on the calendar). Applies to parsed, range, and derived ends.
-    if(opts.roundEnd && end && end.m===50){ end={h:(end.h+1)%24,m:0}; endRounded=true; }
-
     const rawTitle=cleanTitle(get(row,map.title));
     const dec=decomposeTitle_(rawTitle, get(row,map.etype), get(row,map.mand), get(row,map.dress));
+    // Quizzes are open across a multi-day window, so a source row spans a date
+    // range. We collapse a quiz to a single-day block on its start date, from noon
+    // to 11:59 PM, and ignore the source times. Quiz detection reuses the event
+    // type: an Event Type column reading "Quiz", or a leading [Quiz] tag in the title.
+    const isQuiz = dec.typeTag==="[Quiz]";
 
-    const room=cleanRoom(get(row,map.room), opts.stripRoom);
+    const startRaw=get(row,map.start), endRaw=get(row,map.end);
+    let start=null, end=null;
+    let endDerived=false, assumedTime=false, endRounded=false, quizWindow=false;
+    if(isQuiz){
+      start={h:12,m:0}; end={h:23,m:59}; quizWindow=true;
+    } else {
+      const sp=parseTime(startRaw);
+      const ep=parseTime(endRaw);
+      start = sp? sp.start : null;
+      end   = ep? ep.start : null;
+      if(!end && sp && sp.range) end=sp.end;
+      if(start && !end && opts.deriveEnd){ end=addMin(start,50); endDerived=true; }
+      if(sp && sp.start && sp.start.assumed) assumedTime=true;
+      // Round a :50 end up to the top of the next hour (a 50-min session reads as a
+      // full hour on the calendar). Applies to parsed, range, and derived ends.
+      if(opts.roundEnd && end && end.m===50){ end={h:(end.h+1)%24,m:0}; endRounded=true; }
+    }
+
+    const room=cleanRoom(get(row,map.room));
     const flags=[];
 
     const reasons=[];
@@ -719,7 +733,7 @@ function extract(grid, headerRow, map, opts){
       else reasons.push("no start time");
     }
     if(!rawTitle) reasons.push("no title");
-    if(d && d2 && (d2.y!==d.y||d2.mo!==d.mo||d2.d!==d.d)){
+    if(!isQuiz && d && d2 && (d2.y!==d.y||d2.mo!==d.mo||d2.d!==d.d)){
       reasons.push(`multi-day (${fmtDate(d)} \u2192 ${fmtDate(d2)})`);
     }
     if(d && !plausibleYear(d.y)) reasons.push("check year "+d.y);
@@ -737,9 +751,10 @@ function extract(grid, headerRow, map, opts){
     if(endDerived) flags.push({k:"d",t:"end +50"});
     if(endRounded) flags.push({k:"n",t:"rounded :50 to :00"});
     if(assumedTime) flags.push({k:"t",t:"PM assumed"});
+    if(quizWindow) flags.push({k:"q",t:"quiz window: 12:00 PM to 11:59 PM"});
 
     out.push({
-      flags, code:"", course:"",
+      flags, code:"",
       date:fmtDate(d), start:fmtTime(start), end:end?fmtTime(end):"",
       core: dec.core, mandatory: dec.mandatory, dress: dec.dress, typeTag: dec.typeTag,
       room,
@@ -756,7 +771,7 @@ function likely(grid){
   const hr=detectHeaderRow(grid);
   const map=detectColumns(grid,hr);
   if(map.date==null||map.start==null||map.title==null) return false;
-  const {out}=extract(grid,hr,map,{deriveEnd:true,roundEnd:true,stripRoom:true,keepDesc:false});
+  const {out}=extract(grid,hr,map,{deriveEnd:true,roundEnd:false,keepDesc:false});
   return out.length>=3;
 }
 
@@ -792,7 +807,7 @@ function getState(grid){
   if(!SHEETSTATE[k]){
     const hr=detectHeaderRow(grid);
     const map=detectColumns(grid,hr);
-    SHEETSTATE[k]={ headerRow:hr, map:pruneMap(map), opts:{deriveEnd:true,roundEnd:true,stripRoom:true,keepDesc:false}, course:"", edits:{} };
+    SHEETSTATE[k]={ headerRow:hr, map:pruneMap(map), opts:{deriveEnd:true,roundEnd:false,keepDesc:false}, edits:{} };
   }
   return SHEETSTATE[k];
 }
@@ -836,7 +851,6 @@ function renderWorkspace(){
         <div class="switches">
           <label class="sw"><input type="checkbox" id="tgEnd" ${st.opts.deriveEnd?"checked":""}><span class="track"></span>Fill missing end times (+50 min)</label>
           <label class="sw"><input type="checkbox" id="tgRound" ${st.opts.roundEnd?"checked":""}><span class="track"></span>Round :50 end times up to the hour</label>
-          <label class="sw"><input type="checkbox" id="tgRoom" ${st.opts.stripRoom?"checked":""}><span class="track"></span>Strip Hybrid / Panopto from room</label>
           <label class="sw"><input type="checkbox" id="tgDesc" ${st.opts.keepDesc?"checked":""}><span class="track"></span>Include descriptions</label>
         </div>
       </div>
@@ -851,7 +865,6 @@ function renderWorkspace(){
   $("hrIn").onchange=e=>{ st.headerRow=Math.max(0,(+e.target.value||1)-1); SHEETSTATE[stateKey()].map=pruneMap(detectColumns(grid,st.headerRow)); st.edits={}; renderWorkspace(); };
   $("tgEnd").onchange=e=>{st.opts.deriveEnd=e.target.checked; renderResult();};
   $("tgRound").onchange=e=>{st.opts.roundEnd=e.target.checked; renderResult();};
-  $("tgRoom").onchange=e=>{st.opts.stripRoom=e.target.checked; renderResult();};
   $("tgDesc").onchange=e=>{st.opts.keepDesc=e.target.checked; renderResult();};
 
   renderResult();
@@ -863,7 +876,7 @@ function renderResult(){
   const {out,review}=extract(grid, st.headerRow, st.map, st.opts);
   const empties=review.filter(r=>r.reason==="empty slot");
   const realRev=review.filter(r=>r.reason!=="empty slot");
-  out.forEach((r,i)=>{ const e=st.edits[i]; if(e){ Object.assign(r,e); } r.course=st.course; });
+  out.forEach((r,i)=>{ const e=st.edits[i]; if(e){ Object.assign(r,e); } });
 
   const area=$("resultArea");
   const missingReq = st.map.date==null||st.map.start==null||st.map.title==null;
@@ -876,10 +889,6 @@ function renderResult(){
         ${empties.length?`<span class="chip mut"><b>${empties.length}</b> empty slots</span>`:""}
       </div>
       <div class="resact">
-        <label class="crsfield">
-          <span class="crslabel">Course for these rows</span>
-          <input class="crsin" id="crsIn" placeholder="e.g. CARD-2029" value="${escapeHtml(st.course)}">
-        </label>
         <button class="btn primary" id="copyBtn" ${out.length?"":"disabled"}>Copy ${out.length} rows</button>
       </div>
     </div>`;
@@ -896,15 +905,17 @@ function renderResult(){
       <label>Dress code <select id="bulkDress"><option value="__keep" selected>— keep —</option><option value="yes">Yes (🟧)</option><option value="no">No</option></select></label>
     </div>
     <div class="tablewrap"><table><thead><tr>
-      <th scope="col" aria-label="flags"></th><th scope="col">course_short</th><th scope="col">date</th><th scope="col">start_time</th><th scope="col">end_time</th><th scope="col" class="mkcol" title="Mandatory: adds Ⓜ️ and [Mandatory]">Ⓜ️</th><th scope="col" class="mkcol" title="Dress code: adds 🟧">🟧</th><th scope="col">type</th><th scope="col">title</th><th scope="col">room</th><th scope="col">description</th>
+      <th scope="col" aria-label="flags"></th><th scope="col">date</th><th scope="col">start_time</th><th scope="col">end_time</th><th scope="col" class="mkcol" title="Mandatory: adds Ⓜ️ and [Mandatory]">Ⓜ️</th><th scope="col" class="mkcol" title="Dress code: adds 🟧">🟧</th><th scope="col">type</th><th scope="col">title</th><th scope="col">room</th><th scope="col">description</th>
     </tr></thead><tbody id="tbody"></tbody></table></div>
+    <datalist id="roomlist">${KNOWN_ROOMS.map(function(rm){return '<option value="'+escapeHtml(rm)+'"></option>';}).join("")}</datalist>
     <div class="legend">
       <span><span class="ftag c">C</span> source conflict</span>
       <span><span class="ftag d">+50</span> end time inferred</span>
       <span><span class="ftag n">:00</span> end rounded to the hour</span>
+      <span><span class="ftag q">quiz</span> open window set to noon to 11:59 PM</span>
       <span><span class="ftag f">fill</span> date carried down</span>
       <span><span class="ftag t">PM?</span> AM/PM assumed</span>
-      <span style="color:var(--ink-faint)">Set Ⓜ️ / 🟧 / type per row or in bulk. The blue line under a title is exactly what Canvas gets. Paste at B2; session_code (column A) fills itself.</span>
+      <span style="color:var(--ink-faint)">Set Ⓜ️ / 🟧 / type per row or in bulk; the room box suggests known rooms and accepts anything. The blue line under a title is exactly what Canvas gets. Paste at cell C2; columns A and B (session_code, course_short) are handled in the Schedule tab.</span>
     </div>`;
   }
   html+=`</section>`;
@@ -933,7 +944,6 @@ function renderResult(){
       const prevLine=(r.mandatory||r.dress||r.typeTag)?`<div class="titleprev" data-prev="1">${escapeHtml(assembledTitle_(r))}</div>`:``;
       tr.innerHTML=`
         <td class="flagcell">${fl}</td>
-        <td class="mono"><div class="cell" data-f="course">${escapeHtml(r.course)}</div></td>
         <td class="mono"><div class="cell" contenteditable data-f="date">${escapeHtml(r.date)}</div></td>
         <td class="mono"><div class="cell" contenteditable data-f="start">${escapeHtml(r.start)}</div></td>
         <td class="mono"><div class="cell" contenteditable data-f="end">${escapeHtml(r.end)}</div></td>
@@ -941,7 +951,7 @@ function renderResult(){
         <td class="mkcell"><input type="checkbox" class="mkbox" data-mk="dress" ${r.dress?"checked":""} aria-label="Dress code"></td>
         <td class="typecell"><select class="typesel" aria-label="Event type">${typeOptionsHtml_(r.typeTag||"")}</select></td>
         <td class="col-title"><div class="cell" contenteditable data-f="core">${escapeHtml(r.core)}</div>${prevLine}</td>
-        <td><div class="cell" contenteditable data-f="room">${escapeHtml(r.room)}</div></td>
+        <td><input class="roomin" list="roomlist" data-f="room" value="${escapeHtml(r.room)}" aria-label="Room" autocomplete="off"></td>
         <td class="col-desc"><div class="cell" contenteditable data-f="desc">${escapeHtml(r.desc)}</div></td>`;
       tr.querySelectorAll('.cell[contenteditable]').forEach(cell=>{
         cell.addEventListener('input',()=>{
@@ -953,6 +963,8 @@ function renderResult(){
           }
         });
       });
+      const roomIn=tr.querySelector('.roomin');
+      if(roomIn) roomIn.addEventListener('input',()=>{ if(!st.edits[i])st.edits[i]={}; st.edits[i].room=roomIn.value; });
       tr.querySelectorAll('.mkbox').forEach(box=>{
         box.addEventListener('change',()=>{ if(!st.edits[i])st.edits[i]={}; st.edits[i][box.dataset.mk]=box.checked; renderResult(); });
       });
@@ -999,8 +1011,6 @@ function renderResult(){
       }
     });
   }
-  const crs=$("crsIn");
-  if(crs){ crs.oninput=()=>{ st.course=crs.value; document.querySelectorAll('.cell[data-f="course"]').forEach(c=>c.textContent=st.course); }; }
   const revChip=$("reviewChip");
   if(revChip){
     const goReview=()=>{ const rc=area.querySelector('.reviewcard'); if(rc) rc.scrollIntoView({behavior: prefersReduced_()?'auto':'smooth', block:'start'}); };
@@ -1010,12 +1020,11 @@ function renderResult(){
 }
 
 function copyRows(rows){
-  const st=SHEETSTATE[stateKey()];
   const tsv=rows.map(r=>{
-    const o={course_short:st.course||"",date:r.date,start_time:r.start,end_time:r.end,title:assembledTitle_(r),room:r.room,description:r.desc};
+    const o={date:r.date,start_time:r.start,end_time:r.end,title:assembledTitle_(r),room:r.room,description:r.desc};
     return SCHED_COLS.map(k=>String(o[k]==null?"":o[k]).replace(/\t/g," ").replace(/\r?\n/g," ")).join("\t");
   }).join("\n");
-  const done=()=>toast(`Copied ${rows.length} rows — paste at B2 in the Schedule tab (column A, session_code, fills itself)`,"ok");
+  const done=()=>toast(`Copied ${rows.length} rows — paste at cell C2 in the Schedule tab`,"ok");
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(tsv).then(done).catch(()=>fallbackCopy(tsv,done));
   } else fallbackCopy(tsv,done);
